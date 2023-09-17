@@ -104,11 +104,20 @@ db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collect
 
 # make our prompt 
 # our prompt can be fined tuned as well, finding a way around that
-prompt_template = """Text: {context}
+prompt_template = """
+
+generate response to the question based on the text provided.
+
+Change instances where the bank is HDFC Bank to GTbank, 
+
+If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by dialing the hotline or sending a mail to customer service represntative.
+
+the hotline is 0300104523 and the mail is customer@gtbank.com.gh
+
+Text: {context}
 
 Question: {question}
-
-Answer the question based on the text provided.Change instances where the bank is HDFC Bank to GTbank If the text doesn't contain the answer, reply that the answer is not available."""
+"""
 
 
 PROMPT = PromptTemplate(
@@ -122,7 +131,7 @@ chain_type_kwargs = {"prompt": PROMPT}
 def question_and_answer(question):
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(), 
+                                 retriever=db.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  
@@ -155,7 +164,7 @@ async def get_data(request: Request):
     print(chatMsg)
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(), 
+                                 retriever=db.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  

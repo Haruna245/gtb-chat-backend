@@ -1,4 +1,3 @@
-Question,Answer,Class
 Do I need to enter ‘#’ after keying in my Card number/ Card expiry date/ CVV number,Please listen to the recorded message and follow the instructions while entering your card details.,security
 What details are required when I want to perform a secure IVR transaction,"To perform a secure IVR transaction, you will need your 16-digit Card number, Card expiry date, CVV number, mobile number and IVR password.",security
 How should I get the IVR Password  if I hold an add-on card,An IVR password can be requested only from the registered mobile number and will be sent to the registered mobile number / email ID of the primary card holder only.,security

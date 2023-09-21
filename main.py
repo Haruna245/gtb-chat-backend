@@ -69,9 +69,10 @@ async def create_upload_file(file: UploadFile):
     return {"filename": file.filename}
 
 
+# load our document here 
 from langchain.document_loaders.csv_loader import CSVLoader
 
-loader = CSVLoader(file_path="./BankFAQs.csv", encoding='utf8')
+loader = CSVLoader(file_path="./gtbank-data-web.csv", csv_args={'delimiter': ','})
 
 data = loader.load()
 
@@ -99,20 +100,19 @@ embeddings = CohereEmbeddings(model = "multilingual-22-12")
 docsearch = Pinecone.from_documents(data_chunks, embeddings, index_name=index_name)'''
 
 # local vector storage
-db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collection_name="my_documents", distance_func="Dot")
+db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collection_name="my_documents", distance_func="Cosine")
 
 
 # make our prompt 
-# our prompt can be fined tuned as well, finding a way around that
 prompt_template = """
 
 generate response to the question based on the text provided.
 
 Change instances where the bank is HDFC Bank to GTbank, 
 
-If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by dialing the hotline or sending a mail to customer service represntative.
+If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by contacting us by telephone or sending a mail to customer service representative.
 
-the hotline is 0300104523 and the mail is customer@gtbank.com.gh
+the Telephone Numbers:Tel: (+233) 302 611 560 Toll free: 0800 124 000 and the mail is gh.customersupport@gtbank.com
 
 Text: {context}
 
@@ -137,9 +137,7 @@ def question_and_answer(question):
                                  
 
     answer = qa({"query": question})
-
    
-
     return answer['result']
 
 #print(question_and_answer("Hi"))

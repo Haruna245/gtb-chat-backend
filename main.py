@@ -14,8 +14,10 @@ from langchain.chains import RetrievalQA
 from langchain.vectorstores import Pinecone
 from langchain.vectorstores import Qdrant
 import os
+import io
 import pinecone
 from typing import Union
+from langchain.document_loaders.csv_loader import CSVLoader
 
 app = FastAPI()
 app.add_middleware(
@@ -27,6 +29,7 @@ app.add_middleware(
 )
 
 os.environ["COHERE_API_KEY"] = "hv5YTaV6oUo5T9LGOY8F4bBtalGflhTU2FdPtEk3"
+r = sr.Recognizer()
 
 @app.get("/")
 def read_root():
@@ -58,18 +61,48 @@ def read_item(item_id: int, q: Union[str, None] = None):
 @app.post("/files/")
 async def create_file(file: Annotated[bytes, File()]):
     sound = file
-    print(file)
-    with open(sound,"rb"):
-        sound.read()
+    mf = io.BytesIO(file)
+    print(type(mf))
+    #audio = AudioSegment.from_file(mf)
+    #audio = AudioSegment.from_bytes()
     return {"file_size": len(file)}
 
 
+""" @app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    print(type(file))
+    #myfile = file.read()
+    #audio = AudioSegment.from_file(file)
+    return {"filename": file.filename}
+ """
+
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile):
-    return {"filename": file.filename}
+    print(type(file))
+    myfile = await file.read()
+    
+    #contents = base64.b64decode(myfile) 
+    #print(contents)
+    """ with open(myfile, 'rb') as f:
+        contents = f.read()
+    audio = AudioSegment.from_file(contents) """
+    audio_segment = AudioSegment.from_file(io.BytesIO(myfile), format="m4a")
+    output_filename = "output.wav"
+    audio_segment.export(output_filename, format="wav")
+    # open the file
+    with sr.AudioFile(output_filename) as source:
+        # listen for the data (load audio to memory)
+        audio_data = r.record(source)
+        # recognize (convert from speech to text)
+        text = r.recognize_google(audio_data)
+        print(text)
+    #myfile = file.read()
+    #audio = AudioSegment.from_file(contents)
+    #return {"filename": file.filename}
+    return text
 
 
-from langchain.document_loaders.csv_loader import CSVLoader
+
 
 loader = CSVLoader(file_path="./BankFAQs.csv", encoding='utf8')
 

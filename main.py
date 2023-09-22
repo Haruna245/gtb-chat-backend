@@ -104,7 +104,7 @@ async def create_upload_file(file: UploadFile):
 
 
 
-loader = CSVLoader(file_path="./BankFAQs.csv", encoding='utf8')
+loader = CSVLoader(file_path="./gtbank-data-web.csv", csv_args={'delimiter': ','})
 
 data = loader.load()
 
@@ -132,16 +132,24 @@ embeddings = CohereEmbeddings(model = "multilingual-22-12")
 docsearch = Pinecone.from_documents(data_chunks, embeddings, index_name=index_name)'''
 
 # local vector storage
-db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collection_name="my_documents", distance_func="Dot")
+db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collection_name="my_documents", distance_func="Cosine")
 
 
 # make our prompt 
-# our prompt can be fined tuned as well, finding a way around that
-prompt_template = """Text: {context}
+prompt_template = """
+
+generate response to the question based on the text provided.
+
+Change instances where the bank is HDFC Bank to GTbank, 
+
+If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by contacting us by telephone or sending a mail to customer service representative.
+
+the Telephone Numbers:Tel: (+233) 302 611 560 Toll free: 0800 124 000 and the mail is gh.customersupport@gtbank.com
+
+Text: {context}
 
 Question: {question}
-
-Answer the question based on the text provided.Change instances where the bank is HDFC Bank to GTbank If the text doesn't contain the answer, reply that the answer is not available."""
+"""
 
 
 PROMPT = PromptTemplate(
@@ -155,15 +163,13 @@ chain_type_kwargs = {"prompt": PROMPT}
 def question_and_answer(question):
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(), 
+                                 retriever=db.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  
 
     answer = qa({"query": question})
-
    
-
     return answer['result']
 
 #print(question_and_answer("Hi"))
@@ -188,7 +194,7 @@ async def get_data(request: Request):
     print(chatMsg)
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(), 
+                                 retriever=db.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  

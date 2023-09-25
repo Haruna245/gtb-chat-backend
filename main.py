@@ -28,8 +28,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-os.environ["COHERE_API_KEY"] = "hv5YTaV6oUo5T9LGOY8F4bBtalGflhTU2FdPtEk3"
+os.environ["COHERE_API_KEY"] = "P5qlLVKqvPGIixGiGVmrKe1yXEQIbrcFoNMJn5ax"
 r = sr.Recognizer()
+
 
 @app.get("/")
 def read_root():
@@ -104,7 +105,12 @@ async def create_upload_file(file: UploadFile):
 
 
 
-loader = CSVLoader(file_path="./gtbank-data-web.csv", csv_args={'delimiter': ','})
+# load our document here 
+
+# for the txt file
+from langchain.document_loaders import TextLoader
+
+loader = TextLoader(file_path="./gtbank_data_web.txt", encoding='utf8')
 
 data = loader.load()
 

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 import models, schemas
-
+from fastapi import FastAPI,Request
 
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
@@ -20,6 +20,10 @@ def create_user(db: Session, user: schemas.UserCreate):
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
+def get_user_login(db: Session,user_email,user_password):
+    
+    return db.query(models.User).filter(models.User.email == user_email,models.User.hashed_password == user_password).first()
+
 
 def get_items(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Item).offset(skip).limit(limit).all()
@@ -27,6 +31,13 @@ def get_items(db: Session, skip: int = 0, limit: int = 100):
 
 def create_user_item(db: Session, item: schemas.ItemCreate):
     db_item = models.Item(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+def create_user_item1(db: Session, item:dict):
+    db_item = models.Item(item)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)

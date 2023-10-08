@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 import io
 from pydub import AudioSegment
+import requests
 import speech_recognition as sr
 
 from sqlalchemy.orm import Session
@@ -51,6 +52,18 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/{user_id}", response_model=schemas.User)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, user_id=user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
+@app.post("/users/login", response_model=schemas.User)
+async def read_user(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    print(data)
+    email= data['email']
+    password = data['password']
+    password1 = password + "notreallyhashed"
+    db_user = crud.get_user_login(db, user_email=email,user_password=password1)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
@@ -110,3 +123,16 @@ async def upload_image(data: UploadFile = File(...)):
     
     return {"results": "hello"}
 
+
+@app.post("/testItem")
+async def read_root(request: Request):
+    data =await request.json() 
+    question= data['question']
+    answer = data['answer']
+    items =dict(data)
+    print(type(items))
+    Session = Depends(get_db)
+    db = Session
+    crud.create_user_item(db=db,item=items)
+    #res = requests.post("http://127.0.0.1:8000/users/items/",{'question':question,'answer':answer})
+    return {"Hello": "World"}

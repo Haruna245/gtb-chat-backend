@@ -80,7 +80,7 @@ data = loader.load()'''
 # for the txt file
 from langchain.document_loaders import TextLoader
 
-loader = TextLoader(file_path="./gtbank_data_web.txt", encoding='utf8')
+loader = TextLoader(file_path="new.txt", encoding='utf8')
 
 data = loader.load()
 
@@ -113,10 +113,9 @@ db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collect
 
 # make our prompt 
 prompt_template = """
+Act as a chatbot.
 
 generate response to the question based on the text provided.
-
-Change instances where the bank is HDFC Bank to GTbank, 
 
 If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by contacting us by telephone or sending a mail to customer service representative.
 

@@ -1,8 +1,9 @@
 from typing import Union
 
-from fastapi import FastAPI,Request,File, UploadFile,Form
+from fastapi import FastAPI,Request,File, UploadFile,Form,HTTPException,Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
+import requests
 import speech_recognition as sr 
 from pydub import AudioSegment
 from langchain.embeddings.cohere import CohereEmbeddings
@@ -15,6 +16,12 @@ import os
 import io
 import pinecone
 from typing import Union
+from langchain.document_loaders.csv_loader import CSVLoader
+import crud, models, schemas
+from database import SessionLocal, engine
+from sqlalchemy.orm import Session
+models.Base.metadata.create_all(bind=engine)
+
 
 
 app = FastAPI()
@@ -42,6 +49,13 @@ docsearch = Pinecone.from_existing_index(index_name, embeddings)
 
 r = sr.Recognizer()
 
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
 def read_root():
@@ -186,3 +200,39 @@ async def get_data(request: Request):
     rd = "recieved"
     # Return a response
     return answer['result']
+
+
+
+@app.post("/users/login", response_model=schemas.User)
+async def read_user(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    print(data)
+    email= data['email']
+    password = data['password']
+    password1 = password + "notreallyhashed"
+    db_user = crud.get_user_login(db, user_email=email,user_password=password1)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
+
+@app.post("/users/items/", response_model=schemas.Item)
+def create_item_for_user(
+     item: schemas.ItemCreate, db: Session = Depends(get_db)
+):
+    return crud.create_user_item(db=db, item=item,)
+
+@app.get("/items/", response_model=list[schemas.Item])
+def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    items = crud.get_items(db, skip=skip, limit=limit)
+    return items
+
+
+
+@app.post("/testItem")
+async def read_root(request: Request):
+    data =await request.json() 
+    question= data['question']
+    answer = data['answer']
+    res = requests.post("http://127.0.0.1:8000/users/items/",{'question':question,'answer':answer})
+    return {"Hello": "World"}

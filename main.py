@@ -9,11 +9,9 @@ from pydub import AudioSegment
 from langchain.embeddings.cohere import CohereEmbeddings
 from langchain.llms import Cohere
 from langchain.prompts import PromptTemplate
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chains import RetrievalQA
-from langchain.vectorstores import Pinecone
-from langchain.vectorstores import Qdrant
+from langchain.vectorstores import Pinecone,Qdrant
 import os
 import io
 import pinecone
@@ -23,6 +21,7 @@ import crud, models, schemas
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
 models.Base.metadata.create_all(bind=engine)
+
 
 
 app = FastAPI()
@@ -35,6 +34,19 @@ app.add_middleware(
 )
 
 os.environ["COHERE_API_KEY"] = "P5qlLVKqvPGIixGiGVmrKe1yXEQIbrcFoNMJn5ax"
+
+pinecone.init(      
+	api_key='6520df82-5caa-4e7c-bccd-74fd82583533',      
+	environment='gcp-starter'      
+) 
+
+# initialize embeddings 
+embeddings = CohereEmbeddings(model = "multilingual-22-12")
+
+index_name = 'dbase'
+
+docsearch = Pinecone.from_existing_index(index_name, embeddings)
+
 r = sr.Recognizer()
 
 # Dependency
@@ -117,49 +129,11 @@ async def create_upload_file(file: UploadFile):
 
 
 
-
-# load our document here 
-
-# for the txt file
-from langchain.document_loaders import TextLoader
-
-loader = TextLoader(file_path="./gtbank_data_web.txt", encoding='utf8')
-
-data = loader.load()
-
-# split texts into chunks
-
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size = 1200,
-    chunk_overlap  = 200,
-    length_function = len,
-)
-
-data_chunks = text_splitter.split_documents(data)
-
-# initialize embeddings 
-embeddings = CohereEmbeddings(model = "multilingual-22-12")
-
-# vector storage
-
-'''
-    There is an instance we can create an online vector storage using pincone but api restrictions so cant move forward with that.
-'''
-
-'''index_name = "faqs-dbase"
-
-docsearch = Pinecone.from_documents(data_chunks, embeddings, index_name=index_name)'''
-
-# local vector storage
-db = Qdrant.from_documents(data_chunks, embeddings, location=":memory:", collection_name="my_documents", distance_func="Cosine")
-
-
 # make our prompt 
 prompt_template = """
+Act as a chatbot.
 
 generate response to the question based on the text provided.
-
-Change instances where the bank is HDFC Bank to GTbank, 
 
 If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by contacting us by telephone or sending a mail to customer service representative.
 
@@ -182,7 +156,7 @@ chain_type_kwargs = {"prompt": PROMPT}
 def question_and_answer(question):
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(search_type="mmr"), 
+                                 retriever = docsearch.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  
@@ -214,7 +188,7 @@ async def get_data(request: Request):
     print(chatMsg)
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=db.as_retriever(search_type="mmr"), 
+                                 retriever=docsearch.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  

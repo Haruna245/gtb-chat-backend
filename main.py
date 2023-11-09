@@ -186,21 +186,25 @@ async def get_data(request: Request):
     data = await request.json()
     chatMsg= data['body']
     print(chatMsg)
-    qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
-                                 chain_type="stuff", 
-                                 retriever=docsearch.as_retriever(search_type="mmr"), 
-                                 chain_type_kwargs=chain_type_kwargs, 
-                                 return_source_documents=True)
-                                 
+    if chatMsg in cache:
+        return cache[chatMsg]
+    else:
+        qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
+                                    chain_type="stuff", 
+                                    retriever=docsearch.as_retriever(search_type="mmr"), 
+                                    chain_type_kwargs=chain_type_kwargs, 
+                                    return_source_documents=True)
+                                    
 
-    answer = qa({"query": chatMsg})
+        answer = qa({"query": chatMsg})
 
-    #return answer['result']
-    # Process the data or perform any desired operations
-    #print(data['body'])
-    rd = "recieved"
-    # Return a response
-    return answer['result']
+        #return answer['result']
+        # Process the data or perform any desired operations
+        #print(data['body'])
+        rd = "recieved"
+        cache[chatMsg] = answer['result']
+        # Return a response
+        return answer['result']
 
 
 

@@ -44,7 +44,12 @@ def create_user_item1(db: Session, item:dict):
     return db_item
 
 
-
+def create_user_FeedBack(db: Session, item: schemas.FeedbackCreate):
+    db_feedback = models.Feedback(**item.dict())
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
 
 
 

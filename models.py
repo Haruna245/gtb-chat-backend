@@ -22,6 +22,14 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     question = Column(String, index=True)
     answer = Column(String, index=True)
+
+class Feedback(Base):
+    __tablename__ = "Feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rate = Column(String, index=True)
+    complete = Column(String, index=True)
+    feedbackText = Column(String, index=True)
    
 
 

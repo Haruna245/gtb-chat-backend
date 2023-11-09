@@ -42,6 +42,7 @@ def read_root():
     return {"Hello": "World"}
 
 
+
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
@@ -136,3 +137,15 @@ async def read_root(request: Request):
     crud.create_user_item(db=db,item=items)
     #res = requests.post("http://127.0.0.1:8000/users/items/",{'question':question,'answer':answer})
     return {"Hello": "World"}
+
+
+app.post("/feedback", response_model=schemas.FeedBack)
+def create_user_FeedBack(
+     item: schemas.FeedbackCreate, db: Session = Depends(get_db)
+):
+    return crud.create_user_FeedBack(db=db, item=item,)
+
+
+@app.post("/Feedback")
+def feedback(item: schemas.FeedbackCreate, db: Session = Depends(get_db)):
+    return crud.create_user_FeedBack(db=db, item=item,)

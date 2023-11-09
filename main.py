@@ -205,6 +205,7 @@ async def get_data(request: Request):
     # Return a response
     return rd
 
+cache = dict()
 @app.post("/chat")
 async def get_data(request: Request):
     # Retrieve data from the frontend

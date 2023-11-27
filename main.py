@@ -1,19 +1,24 @@
+import os
+import io
+
 from typing import Union
 
 from fastapi import FastAPI,Request,File, UploadFile,Form
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Annotated
+
 import speech_recognition as sr 
 from pydub import AudioSegment
+
 from langchain.embeddings.cohere import CohereEmbeddings
 from langchain.llms import Cohere
 from langchain.prompts import PromptTemplate
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chains import RetrievalQA
-from langchain.vectorstores import Pinecone,Qdrant
-import os
-import io
-import pinecone
+from langchain.vectorstores import Qdrant
+
+from qdrant_client import QdrantClient
+
+from typing import Annotated
 from typing import Union
 
 
@@ -28,17 +33,18 @@ app.add_middleware(
 
 os.environ["COHERE_API_KEY"] = "P5qlLVKqvPGIixGiGVmrKe1yXEQIbrcFoNMJn5ax"
 
-pinecone.init(      
-	api_key='6520df82-5caa-4e7c-bccd-74fd82583533',      
-	environment='gcp-starter'      
-) 
+client = QdrantClient(
+   "https://5f76228b-aa4a-4bd9-887a-6cae33a53bfc.us-east4-0.gcp.cloud.qdrant.io:6333", 
+api_key="1FKRDKZlC7W8BcMeayUaxE3nhnMPkcmTB2jGzWcjNKH-_e_9iP4ozQ"
+)
 
 # initialize embeddings 
 embeddings = CohereEmbeddings(model = "multilingual-22-12")
 
-index_name = 'dbase'
-
-docsearch = Pinecone.from_existing_index(index_name, embeddings)
+doc_store = Qdrant(
+    client=client, collection_name="my_documents", 
+    embeddings=embeddings,
+)
 
 r = sr.Recognizer()
 
@@ -117,13 +123,10 @@ async def create_upload_file(file: UploadFile):
 
 # make our prompt 
 prompt_template = """
-Act as a chatbot.
 
 generate response to the question based on the text provided.
 
 If the text doesn't contain the answer, reply that the answer is not available and can request for more assistance by contacting us by telephone or sending a mail to customer service representative.
-
-the Telephone Numbers:Tel: (+233) 302 611 560 Toll free: 0800 124 000 and the mail is gh.customersupport@gtbank.com
 
 Text: {context}
 
@@ -138,11 +141,18 @@ PROMPT = PromptTemplate(
 chain_type_kwargs = {"prompt": PROMPT}
 
 
+PROMPT = PromptTemplate(
+    template=prompt_template, input_variables=["context", "question"]
+)
+
+chain_type_kwargs = {"prompt": PROMPT}
+
+
 # This function takes the prompt as a parameter and returns the answer based on our documents on our vector storage
 def question_and_answer(question):
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever = docsearch.as_retriever(search_type="mmr"), 
+                                 retriever = doc_store.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  
@@ -173,7 +183,7 @@ async def get_data(request: Request):
     print(chatMsg)
     qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                  chain_type="stuff", 
-                                 retriever=docsearch.as_retriever(search_type="mmr"), 
+                                 retriever=doc_store.as_retriever(search_type="mmr"), 
                                  chain_type_kwargs=chain_type_kwargs, 
                                  return_source_documents=True)
                                  

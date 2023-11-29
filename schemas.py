@@ -34,3 +34,21 @@ class Item(ItemBase):
 
     class Config:
         orm_mode = True
+
+
+class FeedBackBase(BaseModel):
+    rate: str
+    complete: str | None = None
+    feedbackText: str | None = None
+
+
+class FeedbackCreate(FeedBackBase):
+    pass
+
+
+class FeedBack(FeedBackBase):
+    id: int
+    
+
+    class Config:
+        orm_mode = True

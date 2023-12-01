@@ -208,7 +208,7 @@ async def get_data(request: Request):
     else:
         qa = RetrievalQA.from_chain_type(llm=Cohere(model="command-nightly", temperature=0), 
                                     chain_type="stuff", 
-                                    retriever=docsearch.as_retriever(search_type="mmr"), 
+                                    retriever=doc_store.as_retriever(search_type="mmr"), 
                                     chain_type_kwargs=chain_type_kwargs, 
                                     return_source_documents=True)
                                     
